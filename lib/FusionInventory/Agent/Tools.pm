@@ -12,6 +12,10 @@ use File::stat;
 use File::Which;
 use Memoize;
 
+use IO::String;
+use Rex::Commands::Run;
+use Rex::Commands::File;
+
 our @EXPORT = qw(
     getDirectoryHandle
     getFileHandle
@@ -320,21 +324,12 @@ sub getFileHandle {
 
     SWITCH: {
         if ($params{file}) {
-            if (!open $handle, '<', $params{file}) {
-                $params{logger}->error(
-                    "Can't open file $params{file}: $ERRNO"
-                ) if $params{logger};
-                return;
-            }
+            $handle = IO::String->new(cat($params{file}));
             last SWITCH;
         }
         if ($params{command}) {
-            if (!open $handle, '-|', $params{command} . " 2>/dev/null") {
-                $params{logger}->error(
-                    "Can't run command $params{command}: $ERRNO"
-                ) if $params{logger};
-                return;
-            }
+            my $str = run($params{command});
+            $handle = IO::String->new($str);
             last SWITCH;
         }
 	if ($params{string}) {
